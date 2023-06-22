@@ -1,25 +1,15 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # Build a Supervised Autoencoder.
-
-# 
+#  Build a Supervised Autoencoder.
 # PCA and the standard autoencoder are unsupervised dimensionality reduction methods, and their learned features are not discriminative. If you build a classifier upon the low-dimenional features extracted by PCA and autoencoder, you will find the classification accuracy very poor.
-# 
 # Linear discriminant analysis (LDA) is a traditionally supervised dimensionality reduction method for learning low-dimensional features which are highly discriminative. Likewise, can we extend autoencoder to supervised leanring?
-# 
-# 
-
-# 
-# 
 # ![Network Structure](https://github.com/wangshusen/CS583A-2019Spring/blob/master/homework/HM5/supervised_ae.png?raw=true "NetworkStructure")
 # 
 
-# ## 1. Data preparation
+# 1. Data preparation
 
-# ### 1.1. Load data
-# 
-
+# 1.1. Load data
 # In[1]:
 
 
@@ -35,16 +25,13 @@ print('Shape of y_train: ' + str(y_train.shape))
 print('Shape of y_test: ' + str(y_test.shape))
 
 
-# ### 1.2. One-hot encode the labels
+# 1.2. One-hot encode the labels
 # 
 # In the input, a label is a scalar in $\{0, 1, \cdots , 9\}$. One-hot encode transform such a scalar to a $10$-dim vector. E.g., a scalar ```y_train[j]=3``` is transformed to the vector ```y_train_vec[j]=[0, 0, 0, 1, 0, 0, 0, 0, 0, 0]```.
 # 
 # 1. Define a function ```to_one_hot``` that transforms an $n\times 1$ array to a $n\times 10$ matrix.
 # 
 # 2. Apply the function to ```y_train``` and ```y_test```.
-
-# In[2]:
-
 
 import numpy as np
 
@@ -64,15 +51,11 @@ print(y_train[0])
 print(y_train_vec[0])
 
 
-# ### 1.3. Randomly partition the training set to training and validation sets
+# 1.3. Randomly partition the training set to training and validation sets
 # 
 # Randomly partition the 60K training samples to 2 sets:
 # * a training set containing 10K samples;
 # * a validation set containing 50K samples. 
-# 
-
-# In[3]:
-
 
 rand_indices = np.random.permutation(60000)
 train_indices = rand_indices[0:10000]
@@ -90,12 +73,9 @@ print('Shape of x_val: ' + str(x_val.shape))
 print('Shape of y_val: ' + str(y_val.shape))
 
 
-# ## 2. Build an unsupervised  autoencoder and tune its hyper-parameters
+# 2. Build an unsupervised  autoencoder and tune its hyper-parameters
 
-# ### 2.1. Build the model
-
-# In[4]:
-
+# 2.1. Build the model
 
 from keras.layers import Input, Dense
 from keras import models
@@ -113,15 +93,8 @@ decode1 =  Dense(32, activation = 'relu')(bottleneck)
 decode2 =  Dense(128, activation = 'relu')(decode1)
 decode3 =  Dense(64, activation = 'relu')(decode2)
 decode4 = Dense(784, activation = 'sigmoid')(decode3)
-
-
 ae = models.Model(input_img, decode4)
-
 ae.summary()
-
-
-# In[5]:
-
 
 # print the network structure to a PDF file
 
@@ -138,30 +111,15 @@ plot_model(
 # you can find the file "unsupervised_ae.pdf" in the current directory.
 
 
-# ### 2.2. Train the model and tune the hyper-parameters
-
-# In[6]:
-
-
+# 2.2. Train the model and tune the hyper-parameters
 from tensorflow.keras import optimizers
-
 learning_rate = 0.003 # to be tuned!
-
 ae.compile(loss='mean_squared_error',
            optimizer=optimizers.Adam(learning_rate=learning_rate))
-
-
-# In[7]:
-
-
 history = ae.fit(x_tr, x_tr, 
                  batch_size=128, 
                  epochs=100, 
                  validation_data=(x_val, x_val))
-
-
-# In[8]:
-
 
 import matplotlib.pyplot as plt
 get_ipython().run_line_magic('matplotlib', 'inline')
@@ -179,11 +137,7 @@ plt.legend()
 plt.show()
 
 
-# ### 2.3. Visualize the reconstructed test images
-
-# In[9]:
-
-
+# 2.3. Visualize the reconstructed test images
 ae_output = ae.predict(x_test).reshape((10000, 28, 28))
 
 ROW = 5
@@ -202,41 +156,22 @@ plt.tight_layout()
 plt.savefig(fname)
 plt.show()
 
-
-# ### 2.4. Evaluate the model on the test set
-# 
-
-# In[10]:
-
-
+# 2.4. Evaluate the model on the test set
 loss = ae.evaluate(x_test, x_test)
 print('loss = ' + str(loss))
 
 
-# ### 2.5. Visualize the low-dimensional features
-
-# In[11]:
-
-
+# 2.5. Visualize the low-dimensional features
 # build the encoder network
 ae_encoder = models.Model(input_img, bottleneck)
 ae_encoder.summary()
-
-
-# In[12]:
-
 
 # extract low-dimensional features from the test data
 encoded_test = ae_encoder.predict(x_test)
 print('Shape of encoded_test: ' + str(encoded_test.shape))
 
-
-# In[13]:
-
-
 colors = np.array(['r', 'g', 'b', 'm', 'c', 'k', 'y', 'purple', 'darkred', 'navy'])
 colors_test = colors[y_test]
-
 
 import matplotlib.pyplot as plt
 get_ipython().run_line_magic('matplotlib', 'inline')
@@ -247,15 +182,8 @@ plt.axis('off')
 plt.tight_layout()
 fname = 'ae_code.pdf'
 plt.savefig(fname)
-
-
-# #### Remark:
-# 
+ 
 # Judging from the visualization, the low-dim features seems not discriminative, as 2D features from different classes are mixed. Let quantatively find out whether they are discriminative.
-
-# In[14]:
-
-
 # extract the 2D features from the training, validation, and test samples
 f_tr = ae_encoder.predict(x_tr)
 f_val = ae_encoder.predict(x_val)
@@ -263,10 +191,6 @@ f_te = ae_encoder.predict(x_test)
 
 print('Shape of f_tr: ' + str(f_tr.shape))
 print('Shape of f_te: ' + str(f_te.shape))
-
-
-# In[15]:
-
 
 from keras.layers import Dense, Input
 from keras import models
@@ -278,39 +202,17 @@ hidden2 = Dense(128, activation='relu')(hidden1)
 output = Dense(10, activation='softmax')(hidden2)
 
 classifier = models.Model(input_feat, output)
-
 classifier.summary()
-
-
-# In[16]:
-
-
 classifier.compile(loss='categorical_crossentropy',
                   optimizer=optimizers.RMSprop(learning_rate=1E-4),
                   metrics=['acc'])
-
-history = classifier.fit(f_tr, y_tr, 
-                        batch_size=32, 
-                        epochs=30, 
-                        validation_data=(f_val, y_val))
+history = classifier.fit(f_tr, y_tr, batch_size=32, epochs=30, validation_data=(f_val, y_val))
 
 
-# ### Conclusion
 # Build a supervised autoencode model for learning low-dimensional discriminative features.
-
-# ## 4. Build a supervised autoencoder model
-# 
-# 
-# 
-# 
+#  4. Build a supervised autoencoder model
 # ![Network Structure](https://github.com/wangshusen/CS583A-2019Spring/blob/master/homework/HM5/supervised_ae.png?raw=true "NetworkStructure")
-# 
-
-# ### 4.1. Build the network
-
-# In[41]:
-
-
+# 4.1. Build the network
 # build the supervised autoencoder network
 from keras.layers import Input, Dense, BatchNormalization, Dropout, Activation
 from keras import models
@@ -376,13 +278,7 @@ classifier3 = Dense(10, name='classifier_3', activation='softmax')(classifier2)
 
 # connect the input and the two outputs
 sae = models.Model(input_img, [decode4, classifier3])
-
 sae.summary()
-
-
-# In[43]:
-
-
 # print the network structure to a PDF file
 
 from IPython.display import SVG
@@ -396,25 +292,14 @@ plot_model(
 )
 
 
-# ### 4.2. Train the new model and tune the hyper-parameters
-
-# In[44]:
-
-
+# 4.2. Train the new model and tune the hyper-parameters
 from tensorflow.keras import optimizers
 
 sae.compile(loss=['mean_squared_error', 'categorical_crossentropy'],
             loss_weights=[0.8, 0.65], # to be tuned
             optimizer=optimizers.RMSprop(learning_rate=1E-3))
 
-history = sae.fit(x_tr, [x_tr, y_tr], 
-                  batch_size=32, 
-                  epochs=100, 
-                  validation_data=(x_val, [x_val, y_val]))
-
-
-# In[45]:
-
+history = sae.fit(x_tr, [x_tr, y_tr], batch_size=32, epochs=100, validation_data=(x_val, [x_val, y_val]))
 
 import matplotlib.pyplot as plt
 get_ipython().run_line_magic('matplotlib', 'inline')
@@ -432,10 +317,7 @@ plt.legend()
 plt.show()
 
 
-# ### 4.3. Visualize the reconstructed test images
-
-# In[46]:
-
+# 4.3. Visualize the reconstructed test images
 
 sae_output = sae.predict(x_test)[0].reshape((10000, 28, 28))
 
@@ -456,20 +338,12 @@ plt.savefig(fname)
 plt.show()
 
 
-# ### 4.4. Visualize the low-dimensional features
+# 4.4. Visualize the low-dimensional features
 # 
 # 
-
-# In[47]:
-
-
 # build the encoder model
 sae_encoder = models.Model(input_img, bottleneck)
 sae_encoder.summary()
-
-
-# In[48]:
-
 
 # extract test features
 encoded_test = sae_encoder.predict(x_test)
@@ -477,7 +351,6 @@ print('Shape of encoded_test: ' + str(encoded_test.shape))
 
 colors = np.array(['r', 'g', 'b', 'm', 'c', 'k', 'y', 'purple', 'darkred', 'navy'])
 colors_test = colors[y_test]
-
 
 import matplotlib.pyplot as plt
 get_ipython().run_line_magic('matplotlib', 'inline')
@@ -489,18 +362,10 @@ plt.tight_layout()
 fname = 'sae_code.pdf'
 plt.savefig(fname)
 
-
-# In[49]:
-
-
 # extract 2D features from the training, validation, and test samples
 f_tr = sae_encoder.predict(x_tr)
 f_val = sae_encoder.predict(x_val)
 f_te = sae_encoder.predict(x_test)
-
-
-# In[50]:
-
 
 # build a classifier which takes the 2D features as input
 from keras.layers import *
@@ -516,25 +381,11 @@ output = Dense(10, activation='sigmoid')(dense3)
 
 # define the classifier model
 classifier = models.Model(input_feat, output)
-
 classifier.summary()
-
-
-# In[51]:
-
-
 classifier.compile(loss='categorical_crossentropy',
                   optimizer=optimizers.RMSprop(learning_rate=1E-4),
                   metrics=['acc'])
-
-history = classifier.fit(f_tr, y_tr, 
-                        batch_size=32, 
-                        epochs=30, 
-                        validation_data=(f_val, y_val))
-
-
-# In[52]:
-
+history = classifier.fit(f_tr, y_tr, batch_size=32, epochs=30, validation_data=(f_val, y_val))
 
 # evaluate your model on the never-seen-before test data
 # write your code here:
